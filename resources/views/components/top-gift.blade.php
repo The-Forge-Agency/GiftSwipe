@@ -2,7 +2,7 @@
 
 <div class="rounded-2xl bg-accent/10 p-8 text-center">
     @if($result->gift->image_url)
-        <img src="{{ $result->gift->image_url }}" alt="{{ $result->gift->name }}" class="h-20 w-20 rounded-2xl object-cover mx-auto">
+        <img src="{{ $result->gift->image_url }}" alt="{{ $result->gift->name }}" class="h-20 w-20 rounded-2xl object-cover mx-auto" referrerpolicy="no-referrer">
     @else
         <div class="inline-flex items-center justify-center h-14 w-14 rounded-full bg-accent text-2xl text-white">
             🏆

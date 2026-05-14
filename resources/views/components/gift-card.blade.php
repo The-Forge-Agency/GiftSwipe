@@ -2,7 +2,7 @@
 
 <div class="flex items-center gap-4 rounded-2xl bg-bg-alt p-4">
     @if($gift->image_url)
-        <img src="{{ $gift->image_url }}" alt="{{ $gift->name }}" class="h-10 w-10 rounded-xl object-cover shrink-0">
+        <img src="{{ $gift->image_url }}" alt="{{ $gift->name }}" class="h-10 w-10 rounded-xl object-cover shrink-0" referrerpolicy="no-referrer">
     @else
         <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-accent/10 text-lg shrink-0">
             🎁

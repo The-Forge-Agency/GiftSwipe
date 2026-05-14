@@ -110,7 +110,7 @@
                         {{-- Content --}}
                         <div class="relative z-10 text-center">
                             <template x-if="gift.image_url">
-                                <img :src="gift.image_url" :alt="gift.name" class="h-32 w-32 rounded-2xl object-cover mx-auto">
+                                <img :src="gift.image_url" :alt="gift.name" class="h-32 w-32 rounded-2xl object-cover mx-auto" referrerpolicy="no-referrer">
                             </template>
                             <template x-if="!gift.image_url">
                                 <p class="text-5xl">🎁</p>

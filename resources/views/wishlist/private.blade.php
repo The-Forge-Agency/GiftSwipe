@@ -74,7 +74,7 @@
 
             <template x-if="imageUrl">
                 <div class="flex items-center gap-3 rounded-xl bg-bg-alt p-3">
-                    <img :src="imageUrl" alt="Aperçu" class="h-16 w-16 rounded-xl object-cover shrink-0">
+                    <img :src="imageUrl" alt="Aperçu" class="h-16 w-16 rounded-xl object-cover shrink-0" referrerpolicy="no-referrer">
                     <button type="button" @click="imageUrl = ''" class="text-ink-alt hover:text-swipe-no text-sm">Retirer</button>
                 </div>
             </template>
