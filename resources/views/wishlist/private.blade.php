@@ -144,17 +144,7 @@
                 this.scraping = true;
 
                 try {
-                    const response = await fetch('/api/scrape-url', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json',
-                        },
-                        body: JSON.stringify({ url: this.url }),
-                    });
-
-                    const data = await response.json();
+                    const data = await scrapeWithFallback(this.url, document.querySelector('meta[name="csrf-token"]').content);
 
                     if (data.clean_url) this.url = data.clean_url;
                     if (data.title && !this.name) this.name = data.title;
