@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-title: 'Fredoka', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    --color-bg: #FFF8F0;
+    --color-bg-alt: #FFF0EB;
+    --color-ink: #1A1A2E;
+    --color-ink-alt: #64607D;
+    --color-accent: #FF6B8A;
+    --color-accent-hover: #FF5278;
+    --color-swipe-yes: #4ADE80;
+    --color-swipe-no: #F87171;
+    --color-cagnotte: #FBBF24;
+}
