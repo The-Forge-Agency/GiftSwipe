@@ -71,8 +71,10 @@ it('creates an event from a wishlist', function () {
     $wishlist = Wishlist::factory()->create(['person_name' => 'Charlie']);
     WishlistItem::factory()->count(2)->create(['wishlist_id' => $wishlist->id]);
 
-    $this->post(route('wishlist.create-event', $wishlist))
-        ->assertRedirect();
+    $this->post(route('wishlist.create-event', $wishlist), [
+        'organizer_name' => 'Dave',
+        'birthday_date' => '2026-12-25',
+    ])->assertRedirect();
 
     $this->assertDatabaseHas('events', [
         'birthday_person_name' => 'Charlie',

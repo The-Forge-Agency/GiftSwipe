@@ -18,6 +18,7 @@ class Event extends Model
         'slug',
         'birthday_person_name',
         'birthday_date',
+        'owner_token',
         'wishlist_id',
     ];
 

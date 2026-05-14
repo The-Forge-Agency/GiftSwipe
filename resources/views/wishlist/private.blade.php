@@ -53,7 +53,6 @@
 
         <form method="POST" action="{{ route('wishlist.store-item', $wishlist->private_slug) }}" class="mt-4 space-y-4">
             @csrf
-            <input type="hidden" name="image_url" :value="imageUrl">
 
             <x-input
                 name="url"
@@ -76,9 +75,17 @@
             <template x-if="imageUrl">
                 <div class="flex items-center gap-3 rounded-xl bg-bg-alt p-3">
                     <img :src="imageUrl" alt="Aperçu" class="h-16 w-16 rounded-xl object-cover shrink-0">
-                    <p class="text-sm text-ink-alt">Image détectée</p>
+                    <button type="button" @click="imageUrl = ''" class="text-ink-alt hover:text-swipe-no text-sm">Retirer</button>
                 </div>
             </template>
+
+            <x-input
+                name="image_url"
+                type="url"
+                placeholder="URL de l'image (auto-détectée ou colle la tienne)"
+                :error="$errors->first('image_url')"
+                x-model="imageUrl"
+            />
 
             <x-input
                 name="name"
@@ -88,6 +95,15 @@
                 :error="$errors->first('name')"
                 x-model="name"
                 required
+            />
+
+            <x-input
+                name="description"
+                type="text"
+                placeholder="Petite description (optionnel)"
+                value="{{ old('description') }}"
+                :error="$errors->first('description')"
+                x-model="description"
             />
 
             <x-input
@@ -117,6 +133,7 @@
             name: '{{ old("name") }}',
             price: '{{ old("price") }}',
             imageUrl: '{{ old("image_url") }}',
+            description: '{{ old("description") }}',
             scraping: false,
 
             async scrapeUrl() {
@@ -136,9 +153,11 @@
 
                     const data = await response.json();
 
+                    if (data.clean_url) this.url = data.clean_url;
                     if (data.title && !this.name) this.name = data.title;
                     if (data.price && !this.price) this.price = data.price;
                     if (data.image_url) this.imageUrl = data.image_url;
+                    if (data.description && !this.description) this.description = data.description;
                 } catch (e) {
                     // silently fail
                 } finally {

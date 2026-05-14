@@ -1,58 +1,182 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GiftSwipe
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> App #02/52 — [The Forge Agency](https://the-forge.agency) sprint challenge
 
-## About Laravel
+**GiftSwipe** est une web app pour organiser des cadeaux de groupe par vote (swipe) ou créer sa wishlist perso. Zéro inscription, accès uniquement par lien partagé.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Le concept
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Offrir un cadeau de groupe, c'est toujours le même bazar : 12 liens dans un chat, 4 avis différents, 0 décision. GiftSwipe résout ça en 3 étapes.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Mode organisateur
 
-## Learning Laravel
+- Crée un événement en 10 secondes (prénom + date d'anniversaire)
+- Ajoute des idées cadeaux (avec auto-remplissage par URL : titre, prix, image, description)
+- Partage le lien — tout le monde swipe les idées
+- Le cadeau préféré sort des votes
+- Cagnotte : chaque participant indique combien il met
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Mode wishlist
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Crée ta liste de souhaits perso
+- Ajoute tes envies (colle une URL → les infos se remplissent toutes seules)
+- 2 liens générés : un public (lecture seule) à partager, un privé (édition) à garder
+- Tes proches peuvent créer un événement GiftSwipe directement depuis ta wishlist
+- Retrouve tes espaces grâce au cookie "Mes espaces"
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Fonctionnalités
 
-## Agentic Development
+- Scraping intelligent (OG tags, JSON-LD, Amazon, Fnac…)
+- Nettoyage d'URL Amazon (supprime le tracking, garde le `/dp/ASIN`)
+- Images produit sur les cartes swipe et les résultats
+- Mini-chat par événement (identité fixée par cookie)
+- Cagnotte détaillée (qui met combien)
+- "Mes espaces" : retrouve tes wishlists et événements via cookie
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Stack technique
 
-```bash
-composer require laravel/boost --dev
+- **Backend** : Laravel 13 (PHP 8.5)
+- **Frontend** : Blade + Tailwind CSS 4 + Alpine.js
+- **Base de données** : SQLite
+- **Scraping** : Http facade + DOMDocument/DOMXPath (OG, JSON-LD)
+- **Tests** : Pest v4 (35 tests)
 
-php artisan boost:install
+## Build in public — Comment ce projet a été créé
+
+Ce projet a été entièrement construit avec **Claude Code** (Claude Opus 4) en pair programming IA continu. Voici le process :
+
+### Prompt initial
+
+> "À l'aide du readme, analyse le brief, toutes les assets, fais-moi un plan ultra détaillé avec des tickets sous forme de .md [...] tu dois faire une application 100% fonctionnelle en Laravel, aucune feature n'est complexe, tout doit rester simple et efficace."
+
+### Les étapes
+
+1. **V1 — Flow de base**
+   - Landing page + création d'événement
+   - Ajout d'idées cadeaux
+   - Système de swipe (Tinder-like avec Alpine.js)
+   - Page résultats avec classement des votes
+   - Système de participants par session
+
+2. **V2 — Wishlist + Scraping + Messages + Cagnotte**
+   - Images produit sur les gift ideas
+   - Service de scraping URL (OG tags, JSON-LD, Amazon-specific)
+   - Wishlist complète avec double slug (public/privé)
+   - Fil de messages par événement (cookie-based)
+   - Cagnotte engagements (budget par participant)
+   - Landing page double usage
+   - Création d'événement depuis une wishlist
+   - "Mes espaces" avec cookie persistant
+
+### Allers-retours IA notables
+
+| Problème | Déclencheur | Solution |
+|---|---|---|
+| `composer.json` introuvable en deploy | Forge cherche composer.json à la racine du repo | `.git` déplacé dans `GiftSwipeApp/` pour que le repo = l'app Laravel |
+| `realpath()` retourne `false` en prod | Le dossier `storage/framework/views` n'existe pas au deploy | Fallback `?: storage_path(...)` dans `config/view.php` |
+| URLs Amazon > 500 chars | "The url field must not be greater than 500 characters" | Nettoyage d'URL (strip tracking) + limite à 2048 + migration colonnes |
+| Scraping Amazon vide | User-Agent générique bloqué, pas de clean URL | User-Agent navigateur + `Accept-Language: fr-FR` + sélecteur `#landingImage` |
+| Dates en anglais ("May") | "pk pas en francais ?" | `config/app.php` locale `'fr'` |
+| Pas d'image custom possible | "on doit pouvoir mettre une image custom" | Champ `image_url` visible dans le form + preview |
+| Migration FK échoue | `wishlist_items` créée avant `wishlists` (même timestamp) | Timestamp de migration décalé |
+| Wishlist → event sans infos orga | "il faut demander le prénom de l'organisateur" | Form avec `organizer_name` + `birthday_date` sur la vue publique |
+| User perd ses espaces | "si l'user retourne sur le site lui mettre un endroit" | Cookie `giftswipe_owner_token` + page "Mes espaces" |
+
+### Prompts utilisateur clés
+
+```
+"on doit pouvoir mettre une image custom, une description aussi sur les cadeaux,
+voir l'image automatiquement loaded ou l'importer nous meme tu vois ? :D"
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+```
+"quand on clique depuis le lien d'une whishtlist il faut demander
+la date de l'event choisi et le prénom de l'organisateur"
+```
 
-## Contributing
+```
+"il faut aussi deposer un cookie tout le temps et si l'user retourne
+sur le site lui mettre un endroit pour retourner dans ses whistlist
+(ou il a le droit de modifier) ou les organisation en cours"
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Installation
 
-## Code of Conduct
+```bash
+git clone git@github.com:The-Forge-Agency/GiftSwipe.git
+cd GiftSwipe
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm run build
+composer dev
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+L'app tourne sur `http://localhost:8000`.
 
-## Security Vulnerabilities
+## Architecture
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```
+app/
+├── Http/Controllers/
+│   ├── Api/
+│   │   └── ScrapeController.php    # POST /api/scrape-url (throttle:10,1)
+│   ├── EventController.php         # CRUD événements, résultats, cagnotte
+│   ├── MessageController.php       # Mini-chat par événement
+│   ├── SwipeController.php         # Join + swipe (like/dislike)
+│   └── WishlistController.php      # CRUD wishlist + items + mes espaces
+├── Models/
+│   ├── Event.php                   # slug auto-généré, owner_token
+│   ├── GiftIdea.php                # nom, url, prix, image, description
+│   ├── Message.php                 # author_token cookie-based
+│   ├── Participant.php             # nom + budget_max (cagnotte)
+│   ├── Swipe.php                   # liked (bool) par participant
+│   ├── Wishlist.php                # double slug (8 public + 12 privé)
+│   └── WishlistItem.php            # items de la wishlist
+└── Services/
+    └── UrlScraperService.php       # Scraping OG/JSON-LD + nettoyage URL
+```
 
-## License
+### Pages
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Route | Page |
+|---|---|
+| `/` | Landing — 2 CTAs (organiser / wishlist) |
+| `/create` | Créer un événement |
+| `/mes-espaces` | Retrouver ses wishlists et événements |
+| `/wishlist/create` | Créer sa wishlist |
+| `/wishlist/{slug}` | Wishlist publique (lecture seule) |
+| `/wishlist/edit/{privateSlug}` | Wishlist privée (édition) |
+| `/{slug}` | Page événement (idées + discussion) |
+| `/{slug}/swipe` | Swipe les idées cadeaux |
+| `/{slug}/results` | Résultats + cagnotte |
+
+### Cookies
+
+| Cookie | Durée | Usage |
+|---|---|---|
+| `giftswipe_owner_token` | 1 an | Identifie le créateur (wishlists + events) |
+| `giftswipe_author_token` | 1 an | Identifie l'auteur des messages |
+
+## Tests
+
+```bash
+php artisan test --compact
+```
+
+## Design System
+
+- **Fond** : `#FFF8F0` (cream)
+- **Fond alt** : `#FFF0EB`
+- **Texte** : `#1A1A2E` (ink)
+- **Accent** : `#FF6B8A` (pink)
+- **Swipe oui** : `#4ADE80` (green)
+- **Swipe non** : `#F87171` (red)
+- **Fonts** : Fredoka (titres) + Inter (body)
+- **Radius** : `rounded-2xl` partout
+
+## Licence
+
+MIT

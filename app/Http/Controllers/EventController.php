@@ -7,6 +7,7 @@ use App\Http\Requests\StoreGiftIdeaRequest;
 use App\Models\Event;
 use App\Models\Participant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -23,9 +24,13 @@ class EventController extends Controller
 
     public function store(StoreEventRequest $request)
     {
-        $event = Event::create($request->validated());
+        $token = $request->cookie('giftswipe_owner_token') ?? Str::uuid()->toString();
 
-        return redirect()->route('event.show', $event);
+        $event = Event::create([...$request->validated(), 'owner_token' => $token]);
+
+        return redirect()
+            ->route('event.show', $event)
+            ->withCookie(cookie('giftswipe_owner_token', $token, 60 * 24 * 365, sameSite: 'Lax'));
     }
 
     public function show(Request $request, Event $event): View

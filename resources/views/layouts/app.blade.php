@@ -19,10 +19,15 @@
 </head>
 <body class="bg-bg text-ink font-body min-h-screen flex flex-col">
 
-    <header class="flex items-center justify-center px-6 py-4">
+    <header class="flex items-center justify-between px-6 py-4">
         <a href="/">
             <img src="{{ asset('images/logo-horizontal.svg') }}" alt="GiftSwipe" class="h-9">
         </a>
+        @if(request()->cookie('giftswipe_owner_token'))
+            <a href="{{ route('my-spaces') }}" class="text-sm font-medium text-accent hover:underline">
+                Mes espaces
+            </a>
+        @endif
     </header>
 
     <main class="flex-1 flex flex-col">

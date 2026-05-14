@@ -17,6 +17,7 @@ class GiftIdea extends Model
         'name',
         'url',
         'image_url',
+        'description',
         'price',
         'added_by',
     ];

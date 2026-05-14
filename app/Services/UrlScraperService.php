@@ -6,17 +6,47 @@ use Illuminate\Support\Facades\Http;
 
 class UrlScraperService
 {
+    public static function cleanUrl(string $url): string
+    {
+        // Amazon: keep only /dp/ASIN
+        if (preg_match('#(https?://(?:www\.)?amazon\.[a-z.]+/.*?/dp/[A-Z0-9]+)#i', $url, $m)) {
+            return $m[1];
+        }
+
+        // Strip common tracking params
+        $parsed = parse_url($url);
+        if (! isset($parsed['query'])) {
+            return $url;
+        }
+
+        parse_str($parsed['query'], $params);
+        $junk = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+            'fbclid', 'gclid', 'ref', 'ref_', 'dib', 'dib_tag', 'crid', 'qid',
+            'sprefix', 'sr', 'keywords', 'th', 'psc'];
+        $params = array_diff_key($params, array_flip($junk));
+
+        $clean = $parsed['scheme'] . '://' . $parsed['host'] . ($parsed['path'] ?? '/');
+        if ($params) {
+            $clean .= '?' . http_build_query($params);
+        }
+
+        return $clean;
+    }
+
     /**
-     * @return array{title: ?string, price: ?float, image_url: ?string, description: ?string}
+     * @return array{title: ?string, price: ?float, image_url: ?string, description: ?string, clean_url: ?string}
      */
     public function scrape(string $url): array
     {
+        $cleanUrl = self::cleanUrl($url);
+
         $response = Http::timeout(5)
-            ->withUserAgent('Mozilla/5.0 (compatible; GiftSwipe/1.0)')
-            ->get($url);
+            ->withUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+            ->withHeaders(['Accept-Language' => 'fr-FR,fr;q=0.9'])
+            ->get($cleanUrl);
 
         if (! $response->successful()) {
-            return ['title' => null, 'price' => null, 'image_url' => null, 'description' => null];
+            return ['title' => null, 'price' => null, 'image_url' => null, 'description' => null, 'clean_url' => $cleanUrl];
         }
 
         $html = $response->body();
@@ -34,6 +64,7 @@ class UrlScraperService
             'price' => $this->extractPrice($xpath, $jsonLd, $html),
             'image_url' => $this->extractImage($xpath, $jsonLd),
             'description' => $this->extractDescription($xpath, $jsonLd),
+            'clean_url' => $cleanUrl,
         ];
     }
 
@@ -82,7 +113,11 @@ class UrlScraperService
 
         $title = $xpath->query('//title');
         if ($title->length > 0) {
-            return trim($title->item(0)->textContent);
+            $text = trim($title->item(0)->textContent);
+            // Strip common suffixes like " - Amazon.fr" or " | Site.com"
+            $text = preg_replace('/\s*[-|]\s*[^-|]+$/', '', $text);
+
+            return $text;
         }
 
         return null;
@@ -133,6 +168,12 @@ class UrlScraperService
             if (filter_var($url, FILTER_VALIDATE_URL)) {
                 return $url;
             }
+        }
+
+        // Amazon-specific: look for main product image
+        $landing = $xpath->query('//img[@id="landingImage"]/@src');
+        if ($landing->length > 0) {
+            return trim($landing->item(0)->nodeValue);
         }
 
         return null;

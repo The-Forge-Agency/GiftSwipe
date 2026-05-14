@@ -26,12 +26,33 @@
         @endif
     </div>
 
-    <div class="mt-8">
-        <form method="POST" action="{{ route('wishlist.create-event', $wishlist) }}">
+    <div class="mt-8 rounded-2xl border border-ink/10 p-6">
+        <h2 class="text-lg font-title font-semibold text-ink">Organiser un cadeau pour {{ $wishlist->person_name }}</h2>
+        <p class="mt-1 text-sm text-ink-alt">Les idées de sa wishlist seront importées automatiquement.</p>
+
+        <form method="POST" action="{{ route('wishlist.create-event', $wishlist) }}" class="mt-4 space-y-4">
             @csrf
-            <x-button class="w-full">
-                Organiser un cadeau pour {{ $wishlist->person_name }}
-            </x-button>
+
+            <x-input
+                name="organizer_name"
+                label="Ton prénom (organisateur)"
+                type="text"
+                placeholder="Comment tu t'appelles ?"
+                value="{{ old('organizer_name') }}"
+                :error="$errors->first('organizer_name')"
+                required
+            />
+
+            <x-input
+                name="birthday_date"
+                label="Date de l'anniversaire"
+                type="date"
+                value="{{ old('birthday_date', $wishlist->birthday_date->format('Y-m-d')) }}"
+                :error="$errors->first('birthday_date')"
+                required
+            />
+
+            <x-button class="w-full">Créer l'événement</x-button>
         </form>
     </div>
 

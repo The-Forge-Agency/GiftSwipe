@@ -10,6 +10,7 @@ Route::get('/', [EventController::class, 'index'])->name('landing');
 Route::get('/create', [EventController::class, 'create'])->name('event.create');
 Route::post('/create', [EventController::class, 'store'])->name('event.store');
 
+Route::get('/mes-espaces', [WishlistController::class, 'mySpaces'])->name('my-spaces');
 Route::get('/wishlist/create', [WishlistController::class, 'create'])->name('wishlist.create');
 Route::post('/wishlist/create', [WishlistController::class, 'store'])->name('wishlist.store');
 Route::get('/wishlist/{wishlist}', [WishlistController::class, 'showPublic'])->name('wishlist.public');

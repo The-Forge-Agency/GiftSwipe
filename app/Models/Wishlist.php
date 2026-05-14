@@ -17,6 +17,7 @@ class Wishlist extends Model
         'private_slug',
         'person_name',
         'birthday_date',
+        'owner_token',
     ];
 
     protected function casts(): array
