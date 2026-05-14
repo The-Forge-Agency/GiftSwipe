@@ -40,6 +40,15 @@
 
             <x-participants-list :participants="$event->participants" />
 
+            @if($topGift?->gift->price && $event->participants->count() > 0)
+                <div class="rounded-xl bg-cagnotte/10 p-4 text-center">
+                    <p class="text-sm text-ink-alt">Avec {{ $event->participants->count() }} participant(s), ça fait</p>
+                    <p class="text-2xl font-title font-semibold text-ink mt-1">
+                        ~{{ number_format(ceil($topGift->gift->price / $event->participants->count()), 0, ',', ' ') }} € / personne
+                    </p>
+                </div>
+            @endif
+
             @if($currentParticipant)
                 <div class="rounded-xl bg-bg-alt p-4">
                     <h3 class="font-title font-semibold text-ink mb-3">Mon budget</h3>

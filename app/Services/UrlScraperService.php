@@ -40,8 +40,9 @@ class UrlScraperService
     {
         $cleanUrl = self::cleanUrl($url);
 
-        $response = Http::timeout(5)
-            ->withUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        $response = Http::timeout(10)
+            ->connectTimeout(5)
+            ->withUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
             ->withHeaders(['Accept-Language' => 'fr-FR,fr;q=0.9'])
             ->get($cleanUrl);
 
@@ -102,22 +103,30 @@ class UrlScraperService
      */
     private function extractTitle(\DOMXPath $xpath, array $jsonLd): ?string
     {
-        if (! empty($jsonLd['name'])) {
-            return trim($jsonLd['name']);
+        $og = $xpath->query('//meta[@property="og:title"]/@content');
+        $ogTitle = $og->length > 0 ? html_entity_decode(trim($og->item(0)->nodeValue), ENT_QUOTES, 'UTF-8') : null;
+
+        $jsonLdName = ! empty($jsonLd['name']) ? html_entity_decode(trim($jsonLd['name']), ENT_QUOTES, 'UTF-8') : null;
+
+        // Prefer OG title when JSON-LD name is too generic (< 15 chars)
+        if ($ogTitle && (! $jsonLdName || mb_strlen($jsonLdName) < 15)) {
+            return $ogTitle;
         }
 
-        $og = $xpath->query('//meta[@property="og:title"]/@content');
-        if ($og->length > 0) {
-            return trim($og->item(0)->nodeValue);
+        if ($jsonLdName) {
+            return $jsonLdName;
+        }
+
+        if ($ogTitle) {
+            return $ogTitle;
         }
 
         $title = $xpath->query('//title');
         if ($title->length > 0) {
             $text = trim($title->item(0)->textContent);
-            // Strip common suffixes like " - Amazon.fr" or " | Site.com"
             $text = preg_replace('/\s*[-|]\s*[^-|]+$/', '', $text);
 
-            return $text;
+            return html_entity_decode($text, ENT_QUOTES, 'UTF-8');
         }
 
         return null;
@@ -185,17 +194,17 @@ class UrlScraperService
     private function extractDescription(\DOMXPath $xpath, array $jsonLd): ?string
     {
         if (! empty($jsonLd['description'])) {
-            return mb_substr(trim($jsonLd['description']), 0, 300);
+            return mb_substr(html_entity_decode(trim($jsonLd['description']), ENT_QUOTES, 'UTF-8'), 0, 300);
         }
 
         $og = $xpath->query('//meta[@property="og:description"]/@content');
         if ($og->length > 0) {
-            return mb_substr(trim($og->item(0)->nodeValue), 0, 300);
+            return mb_substr(html_entity_decode(trim($og->item(0)->nodeValue), ENT_QUOTES, 'UTF-8'), 0, 300);
         }
 
         $meta = $xpath->query('//meta[@name="description"]/@content');
         if ($meta->length > 0) {
-            return mb_substr(trim($meta->item(0)->nodeValue), 0, 300);
+            return mb_substr(html_entity_decode(trim($meta->item(0)->nodeValue), ENT_QUOTES, 'UTF-8'), 0, 300);
         }
 
         return null;

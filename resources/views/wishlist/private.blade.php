@@ -79,13 +79,15 @@
                 </div>
             </template>
 
-            <x-input
-                name="image_url"
-                type="url"
-                placeholder="URL de l'image (auto-détectée ou colle la tienne)"
-                :error="$errors->first('image_url')"
-                x-model="imageUrl"
-            />
+            <div x-show="!imageUrl" class="space-y-1.5">
+                <label class="flex items-center gap-3 cursor-pointer rounded-xl border border-dashed border-ink/20 p-3 hover:border-accent/50 transition-colors">
+                    <span class="text-2xl">📷</span>
+                    <span class="text-sm text-ink-alt" x-text="uploading ? 'Upload en cours...' : 'Importer une image'"></span>
+                    <input type="file" accept="image/*" class="hidden" @change="uploadImage($event)">
+                </label>
+            </div>
+
+            <input type="hidden" name="image_url" :value="imageUrl">
 
             <x-input
                 name="name"
@@ -135,6 +137,7 @@
             imageUrl: '{{ old("image_url") }}',
             description: '{{ old("description") }}',
             scraping: false,
+            uploading: false,
 
             async scrapeUrl() {
                 if (!this.url || !this.url.startsWith('http')) return;
@@ -159,9 +162,34 @@
                     if (data.image_url) this.imageUrl = data.image_url;
                     if (data.description && !this.description) this.description = data.description;
                 } catch (e) {
-                    // silently fail
                 } finally {
                     this.scraping = false;
+                }
+            },
+
+            async uploadImage(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                this.uploading = true;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    const response = await fetch('/api/upload-image', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                        },
+                        body: formData,
+                    });
+
+                    const data = await response.json();
+                    if (data.image_url) this.imageUrl = data.image_url;
+                } catch (e) {
+                } finally {
+                    this.uploading = false;
                 }
             },
         };

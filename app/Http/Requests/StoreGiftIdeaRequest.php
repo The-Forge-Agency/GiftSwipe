@@ -24,7 +24,7 @@ class StoreGiftIdeaRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:100'],
             'url' => ['nullable', 'url', 'max:2048'],
-            'image_url' => ['nullable', 'url', 'max:2048'],
+            'image_url' => ['nullable', 'string', 'max:2048'],
             'description' => ['nullable', 'string', 'max:500'],
             'price' => ['nullable', 'numeric', 'min:0'],
         ];

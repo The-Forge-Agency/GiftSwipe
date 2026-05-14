@@ -4,6 +4,18 @@
 
 @section('content')
 
+{{-- Bannière Mes espaces --}}
+@if(request()->cookie('giftswipe_owner_token'))
+<div class="bg-accent/10 border-b border-accent/20">
+    <div class="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
+        <p class="text-sm text-ink font-medium">Tu as déjà des espaces ici !</p>
+        <a href="{{ route('my-spaces') }}" class="text-sm font-semibold text-accent hover:underline">
+            Mes espaces &rarr;
+        </a>
+    </div>
+</div>
+@endif
+
 {{-- Hero --}}
 <section class="text-center px-6 pt-8 pb-16">
     <h1 class="text-4xl sm:text-5xl font-title font-semibold text-ink leading-tight">

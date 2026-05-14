@@ -26,6 +26,30 @@
         @endif
     </div>
 
+    @php
+        $totalPrice = $wishlist->items->sum('price');
+    @endphp
+
+    @if($totalPrice > 0)
+    <div class="mt-8 rounded-2xl bg-cagnotte/10 p-5" x-data="{ participants: 3 }">
+        <h2 class="text-lg font-title font-semibold text-ink">Combien par personne ?</h2>
+        <p class="mt-1 text-sm text-ink-alt">Total de la wishlist : <strong>{{ number_format($totalPrice, 2, ',', ' ') }} €</strong></p>
+
+        <div class="mt-4 flex items-center gap-4">
+            <label class="text-sm text-ink-alt">Participants :</label>
+            <div class="flex items-center gap-2">
+                <button type="button" @click="participants = Math.max(1, participants - 1)" class="w-8 h-8 rounded-full bg-white border border-ink/10 text-ink font-semibold">−</button>
+                <span class="text-lg font-semibold text-ink w-8 text-center" x-text="participants"></span>
+                <button type="button" @click="participants = Math.min(20, participants + 1)" class="w-8 h-8 rounded-full bg-white border border-ink/10 text-ink font-semibold">+</button>
+            </div>
+        </div>
+
+        <p class="mt-3 text-xl font-title font-semibold text-ink">
+            ~<span x-text="Math.ceil({{ $totalPrice }} / participants)"></span> € / personne
+        </p>
+    </div>
+    @endif
+
     <div class="mt-8 rounded-2xl border border-ink/10 p-6">
         <h2 class="text-lg font-title font-semibold text-ink">Organiser un cadeau pour {{ $wishlist->person_name }}</h2>
         <p class="mt-1 text-sm text-ink-alt">Les idées de sa wishlist seront importées automatiquement.</p>
