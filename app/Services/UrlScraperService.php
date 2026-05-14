@@ -33,6 +33,14 @@ class UrlScraperService
         return $clean;
     }
 
+    private const USER_AGENTS = [
+        'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Twitterbot/1.0',
+        'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
+        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    ];
+
     /**
      * @return array{title: ?string, price: ?float, image_url: ?string, description: ?string, clean_url: ?string}
      */
@@ -40,21 +48,43 @@ class UrlScraperService
     {
         $cleanUrl = self::cleanUrl($url);
 
-        $response = Http::timeout(10)
-            ->connectTimeout(5)
-            ->withUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
-            ->withHeaders(['Accept-Language' => 'fr-FR,fr;q=0.9'])
-            ->get($cleanUrl);
+        foreach (self::USER_AGENTS as $ua) {
+            $result = $this->scrapeDirect($cleanUrl, $ua);
+
+            if ($result['title'] || $result['image_url']) {
+                return [...$result, 'clean_url' => $cleanUrl];
+            }
+        }
+
+        return ['title' => null, 'price' => null, 'image_url' => null, 'description' => null, 'clean_url' => $cleanUrl];
+    }
+
+    /**
+     * @return array{title: ?string, price: ?float, image_url: ?string, description: ?string}
+     */
+    private function scrapeDirect(string $url, string $userAgent): array
+    {
+        $empty = ['title' => null, 'price' => null, 'image_url' => null, 'description' => null];
+
+        try {
+            $response = Http::timeout(8)
+                ->connectTimeout(4)
+                ->withUserAgent($userAgent)
+                ->withHeaders(['Accept-Language' => 'fr-FR,fr;q=0.9'])
+                ->get($url);
+        } catch (\Exception) {
+            return $empty;
+        }
 
         if (! $response->successful()) {
-            return ['title' => null, 'price' => null, 'image_url' => null, 'description' => null, 'clean_url' => $cleanUrl];
+            return $empty;
         }
 
         $html = $response->body();
 
         libxml_use_internal_errors(true);
         $doc = new \DOMDocument;
-        $doc->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'));
+        @$doc->loadHTML('<?xml encoding="UTF-8">'.$html);
         libxml_clear_errors();
         $xpath = new \DOMXPath($doc);
 
@@ -65,7 +95,6 @@ class UrlScraperService
             'price' => $this->extractPrice($xpath, $jsonLd, $html),
             'image_url' => $this->extractImage($xpath, $jsonLd),
             'description' => $this->extractDescription($xpath, $jsonLd),
-            'clean_url' => $cleanUrl,
         ];
     }
 
@@ -108,17 +137,17 @@ class UrlScraperService
 
         $jsonLdName = ! empty($jsonLd['name']) ? html_entity_decode(trim($jsonLd['name']), ENT_QUOTES, 'UTF-8') : null;
 
-        // Prefer OG title when JSON-LD name is too generic (< 15 chars)
-        if ($ogTitle && (! $jsonLdName || mb_strlen($jsonLdName) < 15)) {
+        // Pick the longest between OG and JSON-LD — longer = more descriptive
+        if ($ogTitle && $jsonLdName) {
+            return mb_strlen($ogTitle) >= mb_strlen($jsonLdName) ? $ogTitle : $jsonLdName;
+        }
+
+        if ($ogTitle) {
             return $ogTitle;
         }
 
         if ($jsonLdName) {
             return $jsonLdName;
-        }
-
-        if ($ogTitle) {
-            return $ogTitle;
         }
 
         $title = $xpath->query('//title');
