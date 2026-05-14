@@ -34,18 +34,26 @@ Offrir un cadeau de groupe, c'est toujours le même bazar : 12 liens dans un cha
 - Cagnotte détaillée (qui met combien) + calcul prix/personne
 - "Mes espaces" : retrouve tes wishlists et événements via cookie
 
-### Scraping — limites connues
+### Scraping — architecture et limites
 
-Le scraping fonctionne pour la majorité des sites e-commerce (Seiko, Darty, etc.) grâce à une cascade de User-Agents de bots sociaux (Facebook, Twitter, Slack) que les sites whitelistent pour que leurs OG tags soient lus dans les previews de liens.
+Le scraping utilise une stratégie en cascade pour contourner les protections anti-bot des sites e-commerce :
 
-**Amazon résiste** : ils bloquent tous les bots, y compris Facebook et Google. Aucun proxy gratuit ne passe (microlink, allorigins, jsonlink — tous bloqués). Les seules options seraient l'API Product Advertising d'Amazon (compte affilié requis) ou un service payant (ScraperAPI, ScrapingBee). Pour l'instant, l'utilisateur remplit manuellement ou importe une image depuis sa galerie.
+1. **Serveur Laravel** — 5 User-Agents en cascade (Facebook, Twitter, Slack, Google, Chrome). Fonctionne en local/dev. En production, les IP datacenter (Forge) se font bloquer (403 Cloudflare).
+
+2. **Cloudflare Worker** (fallback) — Un worker gratuit (`giftswipe-scraper.vassilidevnet.workers.dev`) qui fetch la page depuis les IPs Cloudflare et parse OG tags + JSON-LD. Appelé directement depuis le navigateur du client quand le serveur échoue. 100K req/jour gratuits.
+
+3. **Upload manuel** — Si tout échoue, l'utilisateur peut importer une image depuis sa galerie/caméra et remplir les infos à la main.
+
+**Amazon résiste** : ils bloquent tous les bots, y compris Facebook, Google et les Workers Cloudflare. Les seules options seraient l'API Product Advertising d'Amazon (compte affilié requis) ou un service payant (ScraperAPI, ScrapingBee).
+
+Les proxies CORS gratuits testés et abandonnés : corsproxy.io (payant hors localhost), allorigins (timeout), microlink (payant pour sites anti-bot), jsonlink (403).
 
 ## Stack technique
 
 - **Backend** : Laravel 13 (PHP 8.5)
 - **Frontend** : Blade + Tailwind CSS 4 + Alpine.js
 - **Base de données** : SQLite
-- **Scraping** : Http facade + DOMDocument/DOMXPath (OG, JSON-LD, 5 User-Agents en cascade)
+- **Scraping** : Cloudflare Worker + Http facade (OG, JSON-LD, 5 User-Agents)
 - **Tests** : Pest v4 (35 tests)
 
 ## Build in public — Comment ce projet a été créé
@@ -82,8 +90,9 @@ Ce projet a été entièrement construit avec **Claude Code** (Claude Opus 4) en
 | `composer.json` introuvable en deploy | Forge cherche composer.json à la racine du repo | `.git` déplacé dans `GiftSwipeApp/` pour que le repo = l'app Laravel |
 | `realpath()` retourne `false` en prod | Le dossier `storage/framework/views` n'existe pas au deploy | Fallback `?: storage_path(...)` dans `config/view.php` |
 | URLs Amazon > 500 chars | "The url field must not be greater than 500 characters" | Nettoyage d'URL (strip tracking) + limite à 2048 + migration colonnes |
-| Scraping vide en prod | IP datacenter bloquée par les sites e-commerce | Cascade de 5 User-Agents (Facebook, Twitter, Slack, Google, Chrome) — les sites whitelistent ces bots pour leurs OG tags |
-| Amazon résiste à tout | Bloque même les bots Facebook/Google, tous les proxies gratuits échouent | Accepté comme limite — l'utilisateur remplit à la main ou importe une image |
+| Scraping vide en prod (403) | IP datacenter Forge bloquée par Cloudflare/WAF | Cascade: serveur (5 UAs) → Cloudflare Worker (IPs non-datacenter) → upload manuel |
+| Proxies CORS tous KO | corsproxy.io payant, allorigins timeout, microlink/jsonlink 403 | Cloudflare Worker gratuit déployé comme proxy scraping dédié |
+| Amazon résiste à tout | Bloque même les bots Facebook/Google et les Workers CF | Accepté comme limite — l'utilisateur remplit à la main ou importe une image |
 | Dates en anglais ("May") | "pk pas en francais ?" | `config/app.php` locale `'fr'` |
 | Pas d'image custom possible | "on doit pouvoir mettre une image custom" | Champ `image_url` visible dans le form + preview |
 | Migration FK échoue | `wishlist_items` créée avant `wishlists` (même timestamp) | Timestamp de migration décalé |
