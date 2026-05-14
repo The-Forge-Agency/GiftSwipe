@@ -42,29 +42,34 @@ class UrlScraperService
     ];
 
     /**
-     * @return array{title: ?string, price: ?float, image_url: ?string, description: ?string, clean_url: ?string}
+     * @return array{title: ?string, price: ?float, image_url: ?string, description: ?string, clean_url: ?string, debug?: array}
      */
     public function scrape(string $url): array
     {
         $cleanUrl = self::cleanUrl($url);
+        $debug = [];
 
         foreach (self::USER_AGENTS as $ua) {
-            $result = $this->scrapeDirect($cleanUrl, $ua);
+            $result = $this->scrapeDirect($cleanUrl, $ua, $debug);
 
             if ($result['title'] || $result['image_url']) {
                 return [...$result, 'clean_url' => $cleanUrl];
             }
         }
 
-        return ['title' => null, 'price' => null, 'image_url' => null, 'description' => null, 'clean_url' => $cleanUrl];
+        return ['title' => null, 'price' => null, 'image_url' => null, 'description' => null, 'clean_url' => $cleanUrl, 'debug' => $debug];
     }
 
     /**
      * @return array{title: ?string, price: ?float, image_url: ?string, description: ?string}
      */
-    private function scrapeDirect(string $url, string $userAgent): array
+    /**
+     * @param array<int, array<string, mixed>> $debug
+     */
+    private function scrapeDirect(string $url, string $userAgent, array &$debug = []): array
     {
         $empty = ['title' => null, 'price' => null, 'image_url' => null, 'description' => null];
+        $uaShort = substr($userAgent, 0, 30);
 
         try {
             $response = Http::timeout(8)
@@ -72,9 +77,15 @@ class UrlScraperService
                 ->withUserAgent($userAgent)
                 ->withHeaders(['Accept-Language' => 'fr-FR,fr;q=0.9'])
                 ->get($url);
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            $debug[] = ['ua' => $uaShort, 'error' => get_class($e).': '.$e->getMessage()];
+
             return $empty;
         }
+
+        $status = $response->status();
+        $bodyLen = strlen($response->body());
+        $debug[] = ['ua' => $uaShort, 'status' => $status, 'body_length' => $bodyLen];
 
         if (! $response->successful()) {
             return $empty;
