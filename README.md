@@ -26,19 +26,26 @@ Offrir un cadeau de groupe, c'est toujours le même bazar : 12 liens dans un cha
 
 ### Fonctionnalités
 
-- Scraping intelligent (OG tags, JSON-LD, Amazon, Fnac…)
+- Scraping intelligent (OG tags, JSON-LD) avec cascade de User-Agents (Facebook, Twitter, Slack, Google, Chrome)
 - Nettoyage d'URL Amazon (supprime le tracking, garde le `/dp/ASIN`)
+- Upload d'image depuis la galerie/caméra (pas seulement par URL)
 - Images produit sur les cartes swipe et les résultats
 - Mini-chat par événement (identité fixée par cookie)
-- Cagnotte détaillée (qui met combien)
+- Cagnotte détaillée (qui met combien) + calcul prix/personne
 - "Mes espaces" : retrouve tes wishlists et événements via cookie
+
+### Scraping — limites connues
+
+Le scraping fonctionne pour la majorité des sites e-commerce (Seiko, Darty, etc.) grâce à une cascade de User-Agents de bots sociaux (Facebook, Twitter, Slack) que les sites whitelistent pour que leurs OG tags soient lus dans les previews de liens.
+
+**Amazon résiste** : ils bloquent tous les bots, y compris Facebook et Google. Aucun proxy gratuit ne passe (microlink, allorigins, jsonlink — tous bloqués). Les seules options seraient l'API Product Advertising d'Amazon (compte affilié requis) ou un service payant (ScraperAPI, ScrapingBee). Pour l'instant, l'utilisateur remplit manuellement ou importe une image depuis sa galerie.
 
 ## Stack technique
 
 - **Backend** : Laravel 13 (PHP 8.5)
 - **Frontend** : Blade + Tailwind CSS 4 + Alpine.js
 - **Base de données** : SQLite
-- **Scraping** : Http facade + DOMDocument/DOMXPath (OG, JSON-LD)
+- **Scraping** : Http facade + DOMDocument/DOMXPath (OG, JSON-LD, 5 User-Agents en cascade)
 - **Tests** : Pest v4 (35 tests)
 
 ## Build in public — Comment ce projet a été créé
@@ -75,7 +82,8 @@ Ce projet a été entièrement construit avec **Claude Code** (Claude Opus 4) en
 | `composer.json` introuvable en deploy | Forge cherche composer.json à la racine du repo | `.git` déplacé dans `GiftSwipeApp/` pour que le repo = l'app Laravel |
 | `realpath()` retourne `false` en prod | Le dossier `storage/framework/views` n'existe pas au deploy | Fallback `?: storage_path(...)` dans `config/view.php` |
 | URLs Amazon > 500 chars | "The url field must not be greater than 500 characters" | Nettoyage d'URL (strip tracking) + limite à 2048 + migration colonnes |
-| Scraping Amazon vide | User-Agent générique bloqué, pas de clean URL | User-Agent navigateur + `Accept-Language: fr-FR` + sélecteur `#landingImage` |
+| Scraping vide en prod | IP datacenter bloquée par les sites e-commerce | Cascade de 5 User-Agents (Facebook, Twitter, Slack, Google, Chrome) — les sites whitelistent ces bots pour leurs OG tags |
+| Amazon résiste à tout | Bloque même les bots Facebook/Google, tous les proxies gratuits échouent | Accepté comme limite — l'utilisateur remplit à la main ou importe une image |
 | Dates en anglais ("May") | "pk pas en francais ?" | `config/app.php` locale `'fr'` |
 | Pas d'image custom possible | "on doit pouvoir mettre une image custom" | Champ `image_url` visible dans le form + preview |
 | Migration FK échoue | `wishlist_items` créée avant `wishlists` (même timestamp) | Timestamp de migration décalé |
